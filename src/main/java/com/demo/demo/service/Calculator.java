@@ -1,4 +1,4 @@
-package com.demo.demo;
+package com.demo.demo.service;
 
 public interface Calculator {
     float plus(float a, float b);
