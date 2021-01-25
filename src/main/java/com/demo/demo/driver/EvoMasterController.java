@@ -1,16 +1,22 @@
 package com.demo.demo.driver;
 
 import com.demo.demo.DemoApplication;
+import com.p6spy.engine.spy.P6SpyDriver;
 import org.evomaster.client.java.controller.EmbeddedSutController;
 import org.evomaster.client.java.controller.InstrumentedSutStarter;
 import org.evomaster.client.java.controller.api.dto.AuthenticationDto;
 import org.evomaster.client.java.controller.api.dto.SutInfoDto;
+import org.evomaster.client.java.controller.db.DbCleaner;
+import org.evomaster.client.java.controller.db.SqlScriptRunnerCached;
 import org.evomaster.client.java.controller.problem.ProblemInfo;
 import org.evomaster.client.java.controller.problem.RestProblem;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +75,20 @@ public class EvoMasterController extends EmbeddedSutController {
 
     @Override
     public String startSut() {
-        ctx = SpringApplication.run(DemoApplication.class, new String[]{"--server.port=0"});
+        ctx = SpringApplication.run(DemoApplication.class, new String[]{
+                "--server.port=0",
+                "--spring.datasource.url=jdbc:p6spy:h2:mem:testdb;DB_CLOSE_DELAY=-1;",
+                "--spring.datasource.driver-class-name=" + P6SpyDriver.class.getName(),
+                "--spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+                "--spring.datasource.username=sa",
+                "--spring.datasource.password"
+        });
+        JdbcTemplate jdbc = ctx.getBean(JdbcTemplate.class);
+        try {
+            connection = jdbc.getDataSource().getConnection();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
         return "http://localhost:8090";
     }
 
@@ -80,6 +99,8 @@ public class EvoMasterController extends EmbeddedSutController {
 
     @Override
     public void resetStateOfSUT() {
+        DbCleaner.clearDatabase_H2(connection);
+        SqlScriptRunnerCached.runScriptFromResourceFile(connection,"src/main/resources/tables.sql");
 
     }
     protected int getSutPort(){
