@@ -74,14 +74,16 @@ public class EvoMasterController extends EmbeddedSutController {
     }
 
     @Override
+
     public String startSut() {
         ctx = SpringApplication.run(DemoApplication.class, new String[]{
-                "--server.port=0",
-                "--spring.datasource.url=jdbc:p6spy:h2:mem:testdb;DB_CLOSE_DELAY=-1;",
-                "--spring.datasource.driver-class-name=" + P6SpyDriver.class.getName(),
+                "--server.port=8090",
+                "--spring.datasource.url=jdbc:h2:mem:testdb;",
+                "--spring.datasource.driver-class-name=org.h2.Driver",
                 "--spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
                 "--spring.datasource.username=sa",
-                "--spring.datasource.password"
+                "--spring.datasource.password=password",
+                "--spring.cache.type=NONE"
         });
         JdbcTemplate jdbc = ctx.getBean(JdbcTemplate.class);
         try {
@@ -100,8 +102,6 @@ public class EvoMasterController extends EmbeddedSutController {
     @Override
     public void resetStateOfSUT() {
         DbCleaner.clearDatabase_H2(connection);
-        SqlScriptRunnerCached.runScriptFromResourceFile(connection,"src/main/resources/tables.sql");
-
     }
     protected int getSutPort(){
         return (Integer)((Map) ctx.getEnvironment().getPropertySources().get("server.port").getSource())
